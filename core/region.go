@@ -219,6 +219,16 @@ func (r *region) requestSpotPrices() error {
 			continue
 		}
 
+		if instType == "cg1.4xlarge" {
+			logger.Println(r.name, "Skipping cg1.4xlarge because it's not supported on our AZ (us-east-1d)")
+			continue
+		}
+
+		if instType == "hi1.4xlarge" {
+			logger.Println(r.name, "Skipping hi1.4xlarge because it's not supported on our AZ (us-east-1d)")
+			continue
+		}
+
 		r.instanceTypeInformation[instType].pricing.spot[az] = price
 
 	}

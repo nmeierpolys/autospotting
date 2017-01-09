@@ -23,6 +23,7 @@ func main() {
 
 func run() {
 	log.Print("Starting autospotting agent, build", conf.BuildNumber)
+	log.Print("Running Earshot custom binaries 1/9/17 2:40PM")
 	autospotting.Run(conf.Config)
 	log.Println("Execution completed, nothing left to do")
 }

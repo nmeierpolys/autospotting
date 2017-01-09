@@ -184,7 +184,7 @@ func (i *instance) getCompatibleSpotInstanceTypes(lc *launchConfiguration) ([]st
 		// We skip it in case we have more than 20% instances of this type already
 		// running
 		if spotInstanceCount == 0 ||
-			(*i.asg.DesiredCapacity/spotInstanceCount > 4) {
+			(*i.asg.DesiredCapacity/spotInstanceCount > 2) {
 			logger.Println(i.asg.name,
 				"no redundancy issues found for", candidate.instanceType,
 				"existing", spotInstanceCount,
