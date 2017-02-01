@@ -59,14 +59,14 @@ func (i *instance) terminate() {
 	}
 }
 
-func (i *instance) getCompatibleSpotInstanceTypes(lc *launchConfiguration) ([]string, error) {
+func (i *instance) getCompatibleSpotInstanceTypes(lc *launchConfiguration) ([]instanceTypeInformation, error) {
 
 	logger.Println("Getting spot instances compatible to ",
 		*i.InstanceId, " of type", *i.InstanceType)
 
 	debug.Println("Using this data as reference", spew.Sdump(i))
 
-	var filteredInstanceTypes []string
+	var filteredInstanceTypes []instanceTypeInformation
 
 	existing := i.typeInfo
 	debug.Println("Using this data as reference", existing)
@@ -184,14 +184,14 @@ func (i *instance) getCompatibleSpotInstanceTypes(lc *launchConfiguration) ([]st
 		// We skip it in case we have more than 20% instances of this type already
 		// running
 		if spotInstanceCount == 0 ||
-			(*i.asg.DesiredCapacity/spotInstanceCount > 2) {
+			(*i.asg.DesiredCapacity/spotInstanceCount > 1) {
 			logger.Println(i.asg.name,
 				"no redundancy issues found for", candidate.instanceType,
 				"existing", spotInstanceCount,
 				"spot instances, adding for comparison",
 			)
 
-			filteredInstanceTypes = append(filteredInstanceTypes, candidate.instanceType)
+			filteredInstanceTypes = append(filteredInstanceTypes, candidate)
 		} else {
 			logger.Println("\nInstances ", candidate, " and ", existing,
 				"are not compatible or resulting redundancy for the availability zone",
@@ -222,8 +222,13 @@ func (i *instance) getCheapestCompatibleSpotInstanceType() (*string, error) {
 	minPrice := math.MaxFloat64
 	var chosenInstanceType string
 
-	for _, instanceType := range filteredInstanceTypes {
-		price := i.typeInfo.pricing.spot[*i.Placement.AvailabilityZone]
+	logger.Println("Starting minPrice is", minPrice)
+
+	for _, candidate := range filteredInstanceTypes {
+		instanceType := candidate.instanceType
+		price := candidate.pricing.spot[*i.Placement.AvailabilityZone]
+
+		logger.Println("Price for", instanceType, "is", price, "vs the current minimum of", minPrice)
 
 		if price < minPrice {
 			minPrice, chosenInstanceType = price, instanceType

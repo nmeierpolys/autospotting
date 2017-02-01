@@ -25,6 +25,11 @@ const (
 	// DefaultMinOnDemandValue stores the default on-demand capacity to be kept
 	// running in a group managed by autospotting.
 	DefaultMinOnDemandValue = 0
+
+	// DefaultSecondsToWaitBeforeReplacing stores the default number of seconds that
+	// an on-demand instance must be up before autospotting tries to replace it with
+	// a spot instance.
+	DefaultSecondsToWaitBeforeReplacing = int64(30 * 60)
 )
 
 type autoScalingGroup struct {
@@ -144,8 +149,12 @@ func (a *autoScalingGroup) loadDefaultConfig() bool {
 func (a *autoScalingGroup) needReplaceOnDemandInstances() bool {
 	onDemandRunning, _ := a.alreadyRunningInstanceCount(false, "")
 	if onDemandRunning > a.minOnDemand {
-		logger.Println("Currently more than enough OnDemand instances running")
-		return true
+		if a.anyOnDemandInstancesOldEnoughToReplace() {
+			logger.Println("Currently more than enough OnDemand instances running and at least one is old enough to replace")
+			return true
+		}
+		logger.Println("Currently more than enough OnDemand instances running but none of them are old enough to replace")
+		return false
 	}
 	if onDemandRunning == a.minOnDemand {
 		logger.Println("Currently OnDemand running equals to the required number, skipping run")
@@ -160,6 +169,25 @@ func (a *autoScalingGroup) needReplaceOnDemandInstances() bool {
 			randomSpot.terminate()
 		}
 	}
+	return false
+}
+
+func (a *autoScalingGroup) anyOnDemandInstancesOldEnoughToReplace() bool {
+	secondsToWaitBeforeReplacing := DefaultSecondsToWaitBeforeReplacing
+	maxUptime := int64(0)
+	for _, inst := range a.instances.catalog {
+		if *inst.Instance.State.Name == "running" && inst.isSpot() == false {
+			instanceUpTime := time.Now().Unix() - inst.LaunchTime.Unix()
+			if instanceUpTime > maxUptime {
+				maxUptime = instanceUpTime
+			}
+			if instanceUpTime > secondsToWaitBeforeReplacing {
+				logger.Println("On-demand instance is old enough to replace. Max uptime reached so far:", maxUptime, "(seconds)")
+				return true
+			}
+		}
+	}
+	logger.Println("No on-demand instances old enough to replace. Max uptime reached so far:", maxUptime, "(seconds)")
 	return false
 }
 

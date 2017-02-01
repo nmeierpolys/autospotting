@@ -192,7 +192,7 @@ func (r *region) requestSpotPrices() error {
 
 	// Retrieve all current spot prices from the current region.
 	// TODO: add support for other OSes
-	err := s.fetch("Linux/UNIX", 0, nil, nil)
+	err := s.fetch("Linux/UNIX (Amazon VPC)", 0, nil, nil)
 
 	if err != nil {
 		return errors.New("Couldn't fetch spot prices in" + r.name)
@@ -226,6 +226,11 @@ func (r *region) requestSpotPrices() error {
 
 		if instType == "hi1.4xlarge" {
 			logger.Println(r.name, "Skipping hi1.4xlarge because it's not supported on our AZ (us-east-1d)")
+			continue
+		}
+
+		if az != "us-east-1d" {
+			logger.Println(r.name, "Skipping this one because it's for the wrong az(", az, ")")
 			continue
 		}
 

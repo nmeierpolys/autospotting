@@ -48,7 +48,13 @@ func (s *spotInstanceRequest) waitForAndTagSpotInstance() {
 
 	tags := s.asg.propagatedInstanceTags()
 
-	s.region.instances.get(*spotInstanceID).tag(tags)
+	thisInstance := s.region.instances.get(*spotInstanceID)
+	if thisInstance != nil {
+		thisInstance.tag(tags)
+		logger.Println("Tagged instance", *spotInstanceID)
+	} else {
+		logger.Println("Failed to tag instance", *spotInstanceID)
+	}
 }
 
 func (s *spotInstanceRequest) tag(asgName string) {
